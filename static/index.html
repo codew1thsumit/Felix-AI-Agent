@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#08090c">
+    <meta name="description" content="FELIX AI — a fast, intelligent personal AI assistant.">
+    <title>FELIX AI</title>
+    <link rel="icon" type="image/png" href="/static/felix-logo.png?v=felix-logo-final-1">
+
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <div class="ambient ambient-one"></div>
+        <div class="ambient ambient-two"></div>
+
+        <aside class="sidebar" id="sidebar" aria-label="Conversation sidebar">
+            <div class="sidebar-top">
+                <div class="brand-row">
+                    <button class="brand-button" id="brandButton" aria-label="Collapse sidebar">
+                        <span class="felix-mark small-mark" aria-hidden="true">
+                            <img src="/static/felix-logo.png" alt="">
+                        </span>
+                        <span class="brand-copy">
+                            <strong>FELIX</strong>
+                            <span>AI assistant</span>
+                        </span>
+                    </button>
+                    <button class="icon-button desktop-only" id="collapseSidebar" aria-label="Collapse sidebar" title="Collapse sidebar">
+                        <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+                    </button>
+                </div>
+
+                <button class="new-chat-btn" id="newChatBtn">
+                    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                    <span>New chat</span>
+                    <kbd>Ctrl K</kbd>
+                </button>
+
+                <label class="search-box" for="sessionSearch">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                    <input id="sessionSearch" type="search" placeholder="Search chats" autocomplete="off">
+                    <kbd>/</kbd>
+                </label>
+            </div>
+
+            <div class="session-area">
+                <div class="section-label">
+                    <span>Conversations</span>
+                    <span id="sessionCount">0</span>
+                </div>
+                <nav class="session-list" id="sessionList" aria-label="Conversations">
+                    <div class="session-loading">Loading conversations…</div>
+                </nav>
+            </div>
+
+            <div class="sidebar-bottom">
+                <button class="sidebar-setting" id="themeToggle">
+                    <span class="setting-icon" id="themeIcon">
+                        <svg viewBox="0 0 24 24"><path d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/><circle cx="12" cy="12" r="4"/></svg>
+                    </span>
+                    <span>Appearance</span>
+                    <span class="setting-value" id="themeLabel">Dark</span>
+                </button>
+                <div class="profile-row">
+                    <span class="profile-avatar"><img src="/static/felix-logo.png" alt=""></span>
+                    <span class="profile-copy">
+                        <strong>FELIX AI</strong>
+                        <span>Gemini 3.5 Flash-Lite · LangGraph</span>
+                    </span>
+                    <span class="online-dot" title="Backend connected"></span>
+                </div>
+            </div>
+        </aside>
+
+        <button class="mobile-menu icon-button" id="sidebarToggle" aria-label="Open sidebar">
+            <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+
+        <main class="main" id="main">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="mobile-menu-spacer" aria-hidden="true"></button>
+                    <div class="model-pill">
+                        <span class="status-dot"></span>
+                        <span>FELIX</span>
+                        <span class="pill-muted">·</span>
+                        <span class="pill-muted">Gemini 3.5 Flash-Lite</span>
+                    </div>
+                </div>
+                <div class="topbar-actions">
+                    <button class="icon-button" id="topThemeToggle" aria-label="Toggle theme" title="Toggle theme">
+                        <svg viewBox="0 0 24 24"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"/></svg>
+                    </button>
+                    <button class="icon-button" id="clearChatButton" aria-label="Clear current chat" title="Clear current chat">
+                        <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14"/></svg>
+                    </button>
+                </div>
+            </header>
+
+            <section class="chat-container" id="chatContainer">
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="hero-mark-wrap">
+                        <span class="felix-mark hero-mark" aria-hidden="true">
+                            <img src="/static/felix-logo.png" alt="">
+                        </span>
+                    </div>
+                    <div class="eyebrow">YOUR PERSONAL AI SYSTEM</div>
+                    <h1 class="welcome-title">What are we building<br><span>today?</span></h1>
+                    <p class="welcome-subtitle">Ask FELIX to think, research, write, explain, or build with you.</p>
+
+                    <div class="welcome-suggestions">
+                        <button class="suggestion-card" data-prompt="Explain quantum computing in simple terms">
+                            <span class="suggestion-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v5M12 16h.01"/></svg></span>
+                            <span><strong>Explain</strong><small>Break down a complex topic</small></span>
+                            <svg class="arrow" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                        <button class="suggestion-card" data-prompt="What are the best practices for Python web development?"><span class="suggestion-icon"><svg viewBox="0 0 24 24"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/></svg></span><span><strong>Build</strong><small>Get practical coding guidance</small></span><svg class="arrow" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+                        <button class="suggestion-card" data-prompt="Compare REST and GraphQL APIs"><span class="suggestion-icon"><svg viewBox="0 0 24 24"><path d="M7 7h10M7 12h10M7 17h6"/><circle cx="5" cy="7" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="5" cy="17" r="1"/></svg></span><span><strong>Compare</strong><small>Find the better approach</small></span><svg class="arrow" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+                        <button class="suggestion-card" data-prompt="Write a short poem about artificial intelligence"><span class="suggestion-icon"><svg viewBox="0 0 24 24"><path d="M5 19c5-1 9-5 10-10l4-4 2 2-4 4c-5 1-9 5-10 10H5v-2Z"/></svg></span><span><strong>Create</strong><small>Turn an idea into something new</small></span><svg class="arrow" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+                    </div>
+                </div>
+
+                <div class="messages" id="messages"></div>
+                <button class="scroll-bottom" id="scrollBottom" aria-label="Scroll to latest message">
+                    <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+            </section>
+
+            <footer class="composer-area">
+                <div class="composer-shell" id="composerShell">
+                    <div class="composer-tools">
+                        <span class="composer-hint"><span class="live-dot"></span> Ready</span>
+                        <span class="shortcut-hint"><kbd>Enter</kbd> send · <kbd>Shift Enter</kbd> new line</span>
+                    </div>
+                    <div class="composer-row">
+                        <textarea id="messageInput" placeholder="Message FELIX…" rows="1" autocomplete="off" spellcheck="true"></textarea>
+                        <div class="composer-actions">
+                            <button class="stop-btn" id="stopBtn" type="button" title="Stop generation">
+                                <span class="stop-square"></span>
+                                <span>Stop</span>
+                            </button>
+                            <button class="send-btn" id="sendBtn" type="button" disabled aria-label="Send message" title="Send message">
+                                <svg viewBox="0 0 24 24"><path d="M4 12h14M13 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <p class="input-disclaimer">FELIX can make mistakes. Verify important information.</p>
+            </footer>
+        </main>
+    </div>
+
+    <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+
+    <div class="modal-backdrop" id="renameModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="renameTitle">
+            <div class="modal-heading">
+                <div><span class="eyebrow">CONVERSATION</span><h2 id="renameTitle">Rename chat</h2></div>
+                <button class="icon-button" id="closeRename" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            </div>
+            <input id="renameInput" class="modal-input" maxlength="80" autocomplete="off">
+            <div class="modal-actions">
+                <button class="ghost-btn" id="cancelRename">Cancel</button>
+                <button class="primary-btn" id="saveRename">Save name</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
