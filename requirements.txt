@@ -16,3 +16,4 @@ pymongo
 fastapi
 uvicorn
 websockets
+langchain-openrouter
