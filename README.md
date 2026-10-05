@@ -1,475 +1,440 @@
-# FELIX AI
+# FELIX AI Agent
 
-FELIX is a terminal-based AI assistant built with Python, LangChain, Gemini, Rich, and external tools.
+> A multi-model AI agent with memory, intelligent model routing, tools, and a real-time web interface.
 
-The project is being developed as a learning-focused AI assistant that can be expanded over time with more AI APIs, tools, and capabilities.
+FELIX is a Python-based AI assistant built with LangChain, LangGraph, Gemini, OpenRouter Free, MongoDB, SQLite, FastAPI, WebSockets, and a modular tool system.
 
-> **Project status:** Early development / actively improving  
-> **Current AI model:** Gemini  
-> **Current external tool:** Wikipedia
+## ✨ Features
 
-## What FELIX Can Do
+- 🤖 Gemini + OpenRouter Free multi-model support
+- ⚡ Synapse intelligent model routing
+- 🧠 MongoDB Atlas long-term memory
+- 💾 LangGraph SQLite checkpointing
+- 💬 SQLite-based website chat sessions
+- 🌐 FastAPI + WebSocket real-time streaming
+- 📚 Wikipedia search
+- 🌤️ Current weather
+- 🕐 Current local time
+- 📝 Obsidian Markdown conversation backup
+- ⛔ Stop generation
+- 🔄 Regenerate responses
+- ✏️ Rename sessions
+- 🗑️ Delete/clear sessions
+- 🔎 Session search
+- 🌙 Dark/light interface
+- 📱 Responsive web UI
+- 💻 Markdown and code formatting
 
-- Chat with Gemini from the terminal
-- Use a LangChain agent to decide when a tool is useful
-- Search Wikipedia through the Wikipedia API
-- Display AI responses as formatted Markdown panels
-- Handle startup input (`yes/y` or `no/n`)
-- Exit the chat with `exit`
-- Handle empty messages and API/tool errors
-- Keep the project modular so more APIs and tools can be added later
-
-## Current Architecture
+## 🏗️ Architecture
 
 ```text
-                         FELIX
-                           |
-                           v
-                    LangChain Agent
-                           |
-                    +------+------+
-                    |             |
-                    v             v
-                  Gemini       Wikipedia
-                    |             |
-                    |             v
-                    |        Wikipedia API
-                    |             |
-                    +------+------+
-                           |
-                           v
-                     Final Response
-                           |
-                           v
-                        Terminal
+                         ┌──────────────────┐
+                         │    FELIX UI      │
+                         │ HTML / CSS / JS  │
+                         └────────┬─────────┘
+                                  │ WebSocket
+                                  ▼
+                         ┌──────────────────┐
+                         │     FastAPI      │
+                         │    server.py     │
+                         └────────┬─────────┘
+                                  ▼
+                         ┌──────────────────┐
+                         │      FELIX       │
+                         │      Agent       │
+                         └────────┬─────────┘
+                                  ▼
+                         ┌──────────────────┐
+                         │     Synapse      │
+                         │   Model Router   │
+                         └───────┬───┬──────┘
+                                 │   │
+                    ┌────────────▼┐ ┌▼────────────────┐
+                    │   Gemini    │ │ OpenRouter Free │
+                    └─────────────┘ └─────────────────┘
+
+                 Agent Tools
+          ┌──────────┬──────────┐
+          ▼          ▼          ▼
+      Wikipedia   Weather      Time
+
+          ┌────────────────────────────┐
+          │      MongoDB Atlas        │
+          │     Long-term Memory      │
+          └────────────────────────────┘
+
+          ┌────────────────────────────┐
+          │     LangGraph SQLite      │
+          │       Checkpointing       │
+          └────────────────────────────┘
+
+          ┌────────────────────────────┐
+          │       Obsidian            │
+          │    Markdown Backup        │
+          └────────────────────────────┘
 ```
 
-The goal is **not** to send every question to every API. The LangChain agent can decide when an external tool is useful.
-
-For example:
+## 📁 Project Structure
 
 ```text
-User: Who was Albert Einstein?
-        |
-        v
-   Gemini Agent
-        |
-        v
-  Wikipedia needed
-        |
-        v
- Wikipedia Tool
-        |
-        v
-   Gemini response
-```
-
-For a simple programming question, the agent may answer directly without using Wikipedia.
-
-## Project Structure
-
-```text
-FELIX/
-│
-├── main.py
-├── user_input.py
-├── wikipedia_tool.py
+Felix-AI-Agent/
+├── backend/
+│   ├── __init__.py
+│   └── app.py
+├── guide-introduction/
+│   ├── bug_report.md
+│   ├── FELIX-all-commands.md
+│   └── url.txt
+├── static/
+│   ├── app.js
+│   ├── felix-logo.png
+│   ├── index.html
+│   └── style.css
+├── synapse/
+│   ├── __init__.py
+│   ├── agent.py
+│   ├── executor.py
+│   ├── models.py
+│   └── router.py
+├── tests/
+│   ├── test_executor.py
+│   ├── test_gemini.py
+│   ├── test_openrouter.py
+│   └── test_synapse.py
 ├── config.py
+├── events.py
+├── main.py
+├── memory.py
+├── mongodb.py
+├── obsidian_manager.py
 ├── requirements.txt
-├── .env.example
-├── .gitignore
+├── server.py
+├── time_tool.py
+├── user_input.py
+├── weather_tool.py
+├── wikipedia_tool.py
 └── README.md
 ```
 
-### Main files
+## ⚡ Synapse
 
-| File | Purpose |
-|---|---|
-| `main.py` | Main FELIX application and LangChain agent |
-| `user_input.py` | Startup input and FELIX startup sequence |
-| `wikipedia_tool.py` | Wikipedia API tool exposed to LangChain |
-| `config.py` | Local configuration module |
-| `requirements.txt` | Python dependencies |
-| `.env.example` | Example environment-variable file |
-| `.gitignore` | Prevents secrets and local files from being committed |
-| `README.md` | Project documentation |
-
-## Requirements
-
-- Python 3.10 or newer
-- Internet connection
-- A Gemini API key
-- Windows, macOS, or Linux
-
-The project currently uses packages that support modern Python versions, including Python 3.14.
-
-## Setup
-
-### 1. Clone the repository
-
-```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
-cd FELIX
-```
-
-Replace `YOUR_GITHUB_REPOSITORY_URL` with your repository URL.
-
-### 2. Create a virtual environment
-
-#### Windows PowerShell
-
-```powershell
-python -m venv venv
-```
-
-Activate it:
-
-```powershell
-.\venv\Scripts\Activate.ps1
-```
-
-If PowerShell blocks activation:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
-```
-
-Then:
-
-```powershell
-.\venv\Scripts\Activate.ps1
-```
-
-You should see:
+Synapse separates model selection from the main FELIX agent:
 
 ```text
-(venv) PS D:\Your\Project>
+User Request
+     │
+     ▼
+  Synapse
+   ├── Gemini
+   └── OpenRouter Free
 ```
 
-#### macOS / Linux
+This makes it possible to expand FELIX with additional models and routing rules without redesigning the agent.
 
-```bash
-python3 -m venv venv
-source venv/bin/activate
+## 🧠 Memory
+
+FELIX uses MongoDB Atlas for long-term memory.
+
+The memory system can store useful information such as:
+
+- 👤 Names
+- 💻 Projects
+- ❤️ Preferences
+- 🎮 Interests
+
+Storage responsibilities are separated:
+
+| Storage | Purpose |
+|---|---|
+| MongoDB | Long-term user memory |
+| LangGraph SQLite | Agent checkpoint/state |
+| Chat SQLite | Website sessions/messages |
+| Obsidian | Local Markdown backup |
+
+## 🛠️ Tools
+
+### 📚 Wikipedia
+
+Searches Wikipedia for useful factual information.
+
+File:
+
+```text
+wikipedia_tool.py
 ```
 
-## 3. Install dependencies
+### 🌤️ Weather
 
-With the virtual environment activated:
+Gets current weather for a city, including:
 
-```bash
-python -m pip install --upgrade pip
+- 🌥️ Condition
+- 🌡️ Temperature
+- 🥵 Feels-like temperature
+- 💧 Humidity
+- 🌧️ Precipitation
+- 💨 Wind speed
+- 🕐 Local time
+
+File:
+
+```text
+weather_tool.py
+```
+
+Powered by Open-Meteo.
+
+### 🕐 Time
+
+Gets the current local time for a city, including:
+
+- 📅 Date
+- ⏰ Time
+- 🌍 Timezone
+
+File:
+
+```text
+time_tool.py
+```
+
+## 🌐 Web Interface
+
+The frontend is served by FastAPI and communicates through WebSockets.
+
+It supports:
+
+- 💬 Real-time chat
+- 📂 Session history
+- 🔎 Search
+- ✏️ Rename
+- 🗑️ Delete
+- 🧹 Clear chat
+- ⛔ Stop generation
+- 🔄 Regenerate
+- 📋 Copy responses/code
+- 🌙 Dark/light mode
+- 📱 Responsive layout
+
+Frontend:
+
+```text
+static/
+├── index.html
+├── style.css
+├── app.js
+└── felix-logo.png
+```
+
+## 🚀 Installation
+
+### 1. Clone
+
+```powershell
+git clone https://github.com/sumit1ntech/Felix-AI-Agent.git
+cd Felix-AI-Agent
+```
+
+### 2. Create virtual environment
+
+```powershell
+python -m venv .venv
+```
+
+### 3. Activate
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+### 4. Install dependencies
+
+```powershell
 pip install -r requirements.txt
 ```
 
-## 4. Configure the Gemini API key
+## 🔐 Environment Variables
 
-Create a file named:
-
-```text
-.env
-```
-
-in the root of the project.
-
-Add:
+Create `.env` in the project root:
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key_here
+GOOGLE_API_KEY=your_google_api_key
+OPENROUTER_API_KEY=your_openrouter_api_key
+MONGODB_URI=your_mongodb_connection_string
 ```
 
-Do **not** commit `.env` to GitHub.
+Never commit `.env` to GitHub.
 
-Google recommends keeping API keys in environment variables rather than hardcoding them in source code.
+## 🗄️ MongoDB
 
-## 5. Run FELIX
+FELIX uses MongoDB Atlas for long-term memory.
 
-With the virtual environment activated:
-
-```bash
-python main.py
-```
-
-You should see:
+Database:
 
 ```text
-Start FELIX AI (yes/no)
+felix
 ```
 
-Enter:
+Collection:
 
 ```text
-yes
+memories
 ```
 
-or:
+Set the connection string in:
+
+```env
+MONGODB_URI=your_mongodb_connection_string
+```
+
+## ▶️ Run FELIX
+
+```powershell
+python server.py
+```
+
+Open:
 
 ```text
-y
+http://127.0.0.1:8000
 ```
 
-to start FELIX.
+## 🧪 Testing
 
-Enter:
+### Synapse
+
+```powershell
+python tests/test_synapse.py
+```
+
+### Gemini
+
+```powershell
+python tests/test_gemini.py
+```
+
+### OpenRouter
+
+```powershell
+python tests/test_openrouter.py
+```
+
+### Executor
+
+```powershell
+python tests/test_executor.py
+```
+
+### Weather
+
+```powershell
+python -c "from weather_tool import get_current_weather; print(get_current_weather.invoke('Kolkata'))"
+```
+
+### Time
+
+```powershell
+python -c "from time_tool import get_current_time; print(get_current_time.invoke('Kolkata'))"
+```
+
+## 💬 Example Prompts
 
 ```text
-no
+Explain what an AI agent is.
 ```
-
-or:
 
 ```text
-n
+What's the weather in Kolkata right now?
 ```
-
-to exit.
-
-## Using FELIX
-
-After FELIX starts:
 
 ```text
-👤 You
-›››
+What time is it in Tokyo right now?
 ```
-
-Type your question.
-
-Example:
 
 ```text
-››› Who was Albert Einstein?
+Who invented the C programming language?
 ```
-
-If the agent decides Wikipedia is useful, the terminal can show the Wikipedia tool being used.
-
-To leave the conversation:
 
 ```text
-››› exit
+Explain Python classes with an example.
 ```
 
-## Checking Whether Wikipedia Is Being Used
+## 🧩 Tech Stack
 
-`wikipedia_tool.py` contains debug messages so you can see when the tool is called.
+| Technology | Purpose |
+|---|---|
+| Python | Core language |
+| LangChain | Agent framework |
+| LangGraph | Agent state/checkpointing |
+| Gemini | LLM |
+| OpenRouter | Free model access |
+| Synapse | Model routing |
+| FastAPI | Backend |
+| WebSocket | Real-time streaming |
+| MongoDB Atlas | Long-term memory |
+| SQLite | Checkpoints and chat sessions |
+| Open-Meteo | Weather/time data |
+| Wikipedia | Knowledge lookup |
+| Obsidian | Markdown backup |
+| HTML/CSS/JavaScript | Frontend |
 
-For example:
+## 🔒 Security
 
-```text
-⠿ Felix is thinking...
-
-📚 Wikipedia searching: Albert Einstein
-📚 Wikipedia: results found
-```
-
-This is useful while testing the agent.
-
-The absence of the Wikipedia message does not necessarily mean the tool is broken. It can mean that the agent decided the tool was unnecessary.
-
-## How the Wikipedia Tool Works
-
-FELIX does not use the old `langchain-community` Wikipedia integration.
-
-The current project calls the Wikipedia API directly using `requests` and exposes the function to LangChain with `@tool`.
-
-```text
-User
-  |
-  v
-LangChain Agent
-  |
-  +---- No tool needed ----> Gemini
-  |
-  +---- Wikipedia needed --> Wikipedia API
-                                  |
-                                  v
-                              Results
-                                  |
-                                  v
-                                Gemini
-                                  |
-                                  v
-                               Answer
-```
-
-This keeps the Wikipedia integration simple and makes it easier to add other APIs later.
-
-## Planned Improvements
-
-This project is intentionally designed to grow.
-
-Possible future additions:
-
-- [ ] Grok / xAI API
-- [ ] Additional Gemini capabilities
-- [ ] Web search
-- [ ] Calculator tool
-- [ ] Weather tool
-- [ ] News/search tools
-- [ ] Image understanding
-- [ ] Voice input
-- [ ] Text-to-speech
-- [ ] Better Wikipedia article retrieval
-- [ ] Conversation memory
-- [ ] Streaming responses
-- [ ] Better agent/tool status display
-- [ ] Configuration system
-- [ ] Better error handling
-- [ ] Tests
-- [ ] Logging
-- [ ] More modular project structure
-
-## Why This Project Exists
-
-FELIX is primarily a learning and experimentation project.
-
-The goal is to understand:
-
-- Python
-- APIs
-- LangChain
-- AI agents
-- Tool calling
-- Environment variables
-- Virtual environments
-- API integrations
-- Terminal applications
-- Modular project structure
-
-More integrations will be added over time.
-
-## Known Limitations
-
-This is an early version, so you may encounter:
-
-- API errors
-- Model/API availability issues
-- Wikipedia search limitations
-- Agent decisions that are not always ideal
-- Different behavior after dependency updates
-- Internet/network-related failures
-- Markdown formatting differences
-- Model-name changes as providers update their APIs
-
-If you find something that does not work, please report it.
-
-## Bug Reports
-
-If you find a bug, please open a GitHub Issue.
-
-When reporting a bug, include:
-
-1. What you were trying to do
-2. What you expected to happen
-3. What actually happened
-4. The full error message or traceback
-5. Your Python version
-6. Your operating system
-7. The package versions if possible
-8. Steps to reproduce the problem
-
-### Example
-
-```text
-Python: 3.14.x
-OS: Windows 11
-
-Problem:
-Wikipedia tool fails when asking about a person.
-
-Expected:
-FELIX should search Wikipedia and answer.
-
-Actual:
-FELIX returns an HTTP 403 error.
-
-Error:
-[paste traceback here]
-
-Steps:
-1. Start FELIX
-2. Enter yes
-3. Ask "Who was Albert Einstein?"
-4. Error appears
-```
-
-Please do not post API keys, passwords, `.env` contents, or other secrets in an issue.
-
-## Contributing
-
-Suggestions, bug reports, improvements, and new tool ideas are welcome.
-
-If you want to contribute, fork the repository using GitHub's **Fork** button, then clone your fork.
-
-Create a branch:
-
-```bash
-git checkout -b feature/your-feature
-```
-
-Make your changes, test them, and open a Pull Request.
-
-For small projects or first-time contributions, opening an Issue first is also a good way to discuss an idea.
-
-## Security
-
-Never commit your real API key.
-
-Your `.env` file should remain local:
+Never commit:
 
 ```text
 .env
+database/
+.venv/
+__pycache__/
 ```
 
-Use `.env.example` as a template instead.
+Keep API keys and database credentials private.
 
-If an API key is accidentally pushed to GitHub, revoke/rotate it immediately.
+## 🗺️ Roadmap
 
-## License
+- 🔴 Reddit integration
+- 🌐 Additional web search tools
+- 🧠 Improved memory retrieval
+- ⚡ More advanced model routing
+- 🔀 Additional LLM providers
+- 🛠️ Smarter tool routing
+- 📊 Better agent/event observability
+- 🚀 Production deployment
+- 🔐 Authentication
+- 👥 Multi-user support
 
-Choose a license before publishing the repository.
+## 📌 Project Status
 
-For example, you can use the MIT License by adding a `LICENSE` file to the repository.
+**Active development**
 
-## Project Roadmap
+Current major capabilities:
 
-### v0.1 — Current
+- ✅ Gemini
+- ✅ OpenRouter Free
+- ✅ Synapse routing
+- ✅ MongoDB memory
+- ✅ LangGraph checkpointing
+- ✅ SQLite chat sessions
+- ✅ Wikipedia
+- ✅ Weather
+- ✅ Time
+- ✅ FastAPI
+- ✅ WebSocket streaming
+- ✅ Web interface
+- ✅ Session management
+- ✅ Stop/regenerate
+- ✅ Obsidian integration
 
-- Gemini chat
-- LangChain agent
-- Wikipedia tool
-- Rich terminal interface
-- Basic error handling
-- Environment-variable configuration
+## 👨‍💻 Author
 
-### Future
+**Sumit**
 
-```text
-v0.2
- ├── More tools
- ├── Better Wikipedia retrieval
- └── Improved terminal UI
+GitHub: https://github.com/sumit1ntech
 
-v0.3
- ├── Additional AI APIs
- ├── Better routing
- └── Tool selection improvements
+Project: https://github.com/sumit1ntech/Felix-AI-Agent
 
-v0.4+
- ├── Memory
- ├── Voice
- ├── Vision
- ├── More APIs
- └── Advanced agent capabilities
-```
+## 📄 License
 
-## Feedback
+This project is licensed under the MIT License.
 
-If you try FELIX, please let me know:
-
-- What worked
-- What broke
-- What could be improved
-- What API/tool should be added next
-
-Even small bug reports are useful while the project is being developed.
+See [LICENSE](LICENSE) for details.
