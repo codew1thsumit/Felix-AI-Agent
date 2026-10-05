@@ -427,10 +427,10 @@ Current major capabilities:
 
 ## 👨‍💻 Author
 
-**Sumit Bhaya**
-**Debjeet Paramanik**
-**Munna Ruhidas**
-**Sk Firoz**
+**Sumit Bhaya, 
+Debjeet Paramanik, 
+Munna Ruhidas, 
+Sk Firoz**
 
 GitHub: https://github.com/sumit1ntech
 
