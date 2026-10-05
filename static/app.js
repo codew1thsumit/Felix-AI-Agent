@@ -15,6 +15,8 @@ const state = {
 
 
 const elements = {
+    modelPillName: document.getElementById("modelPillName"),
+    profileModelName: document.getElementById("profileModelName"),
     sidebar: document.getElementById("sidebar"),
     sidebarToggle: document.getElementById("sidebarToggle"),
     sessionList: document.getElementById("sessionList"),
@@ -1126,9 +1128,24 @@ function connectWebSocket(
             );
 
             const source = (data.event && data.event.source) || "";
-            if (source === "memory") activateResponseSource("memory");
-            if (source === "gemini" || source === "model") activateResponseSource("gemini");
-            if (source === "wikipedia" || source === "web") activateResponseSource("wikipedia");
+
+            if (source === "memory") {
+                activateResponseSource("memory");
+            }
+
+            if (source === "gemini" || source === "model") {
+                setActiveModel("gemini");
+                activateResponseSource("model");
+            }
+
+            if (source === "openrouter" || source === "openrouter_free") {
+                setActiveModel("openrouter");
+                activateResponseSource("model");
+            }
+
+            if (source === "wikipedia" || source === "web") {
+                activateResponseSource("wikipedia");
+            }
 
             return;
         }
@@ -1248,7 +1265,7 @@ function connectWebSocket(
 // ============================================================
 
 function assistantAvatarHtml() {
-    return '<img class="assistant-logo" src="/static/felix-logo.png" alt="">';
+    return '<img class="assistant-logo" src="/static/felix-logo.png?v=felix-logo-final-1" alt="">';
 }
 
 function responseActivityHtml() {
@@ -1257,7 +1274,7 @@ function responseActivityHtml() {
     const nodes = [
         ["felix", "FELIX"],
         ["memory", "Memory"],
-        ["gemini", "Gemini"],
+        ["model", "Gemini"],
     ];
 
     return `
@@ -1310,6 +1327,35 @@ function finishResponseActivity(container) {
     }, 450);
 }
 
+function setActiveModel(model) {
+    const isOpenRouter =
+        model === "openrouter" ||
+        model === "openrouter_free";
+
+    const pillLabel = isOpenRouter
+        ? "OpenRouter"
+        : "Gemini 3.5 Flash-Lite";
+
+    if (elements.modelPillName) {
+        elements.modelPillName.textContent = pillLabel;
+    }
+
+    if (elements.profileModelName) {
+        elements.profileModelName.textContent = isOpenRouter
+            ? "OpenRouter · LangGraph"
+            : "Gemini 3.5 Flash-Lite · LangGraph";
+    }
+
+    const activity = document.querySelector("[data-activity]");
+    if (activity) {
+        const node = activity.querySelector('[data-source="model"]');
+        const label = node?.querySelector("span:last-child");
+        if (label) {
+            label.textContent = isOpenRouter ? "OpenRouter" : "Gemini";
+        }
+    }
+}
+
 function activateResponseSource(source) {
     const activity = document.querySelector("[data-activity]");
     if (!activity) return;
@@ -1319,9 +1365,15 @@ function activateResponseSource(source) {
         web: "Web",
         gemini: "Gemini",
         model: "Gemini",
+        openrouter: "OpenRouter",
+        openrouter_free: "OpenRouter",
         memory: "Memory",
         felix: "FELIX",
     };
+
+    if (source === "openrouter" || source === "openrouter_free" || source === "gemini") {
+        source = "model";
+    }
 
     let node = activity.querySelector(`[data-source="${source}"]`);
     if (!node && labels[source]) {

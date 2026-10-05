@@ -2,6 +2,7 @@ import uuid
 import sqlite3
 import json
 import asyncio
+import os
 
 from datetime import datetime
 from contextlib import asynccontextmanager
@@ -12,8 +13,6 @@ from fastapi.responses import HTMLResponse
 
 from dotenv import load_dotenv
 
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.agents import create_agent
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from wikipedia_tool import wikipedia_search
@@ -21,39 +20,35 @@ from memory import get_memories, process_new_message
 from obsidian_manager import save_message
 from events import emit_event
 
-
-# ============================================================
-# ENVIRONMENT
-# ============================================================
+from synapse.agent import create_synapse_agent
 
 load_dotenv()
-
-
-# ============================================================
-# DATABASE PATHS
-# ============================================================
 
 CHECKPOINT_DB_PATH = "database/felix_memory.db"
 CHAT_DB_PATH = "database/chat_sessions.db"
 
 
-# The sqlite files live in ./database — create the folder on
-# first run, otherwise both databases fail to open and the
-# server crashes immediately.
-import os
-os.makedirs("database", exist_ok=True)
+# ============================================================
+# DATABASE DIRECTORY
+# ============================================================
+
+# Create database folder automatically on first run.
+
+os.makedirs(
+    "database",
+    exist_ok=True
+)
 
 
 # ============================================================
 # WEBSITE USER
 # ============================================================
-#
+
 # There is no login system yet, so the website uses one
 # persistent FELIX user identity.
 #
 # thread_id = individual conversation
 # user_id   = same user across conversations
-#
 
 WEBSITE_USER_ID = "default-user"
 
@@ -199,44 +194,6 @@ def extract_text(content):
 
 
 # ============================================================
-# FELIX AGENT
-# ============================================================
-
-def create_felix_agent(checkpointer):
-
-    return create_agent(
-
-        model=ChatGoogleGenerativeAI(
-            model="gemini-3.5-flash-lite"
-        ),
-
-        tools=[
-            wikipedia_search
-        ],
-
-        system_prompt=(
-            "You are FELIX, a helpful AI assistant. "
-
-            "Use the Wikipedia tool when it would provide "
-            "useful factual information. "
-
-            "Do not use Wikipedia when it is not necessary. "
-
-            "Give the user a clear and helpful answer. "
-
-            "Use markdown formatting when useful. "
-
-            "When long-term memory about the user is provided, "
-            "use it only when relevant to the current conversation. "
-
-            "Do not mention the memory system unless the user asks."
-        ),
-
-        checkpointer=checkpointer
-    )
-
-
-# ============================================================
 # FASTAPI LIFESPAN
 # ============================================================
 
@@ -251,7 +208,9 @@ async def lifespan(app: FastAPI):
     print("==============================================")
     print("  SQLite chat database : Online")
     print("  Async checkpointer   : Online")
-    print("  Gemini               : Online")
+    print("  Synapse              : Online")
+    print("  Gemini               : Available")
+    print("  OpenRouter Free      : Available")
     print("==============================================")
     print()
 
@@ -260,10 +219,6 @@ async def lifespan(app: FastAPI):
     ) as checkpointer:
 
         app.state.checkpointer = checkpointer
-
-        app.state.agent = create_felix_agent(
-            checkpointer
-        )
 
         yield
 
@@ -322,7 +277,8 @@ async def health():
         "status": "healthy",
         "service": "FELIX AI",
         "streaming": True,
-        "async_checkpointer": True
+        "async_checkpointer": True,
+        "synapse": True
     }
 
 
@@ -451,15 +407,30 @@ async def get_messages(
 async def clear_session_messages(
     session_id: str
 ):
-    generation = active_generations.get(session_id)
 
-    if generation and not generation.done():
+    generation = active_generations.get(
+        session_id
+    )
+
+    if (
+        generation
+        and not generation.done()
+    ):
+
         generation.cancel()
+
         try:
+
             await generation
+
         except BaseException:
+
             pass
-        active_generations.pop(session_id, None)
+
+        active_generations.pop(
+            session_id,
+            None
+        )
 
     conn = get_chat_db()
 
@@ -468,7 +439,9 @@ async def clear_session_messages(
         DELETE FROM messages
         WHERE session_id = ?
         """,
-        (session_id,)
+        (
+            session_id,
+        )
     )
 
     conn.execute(
@@ -486,7 +459,9 @@ async def clear_session_messages(
     conn.commit()
     conn.close()
 
-    return {"ok": True}
+    return {
+        "ok": True
+    }
 
 
 # ============================================================
@@ -528,7 +503,6 @@ async def delete_session(
             session_id,
             None
         )
-
 
     # --------------------------------------------------------
     # Delete chat history
@@ -641,11 +615,11 @@ async def send_json(
 async def generate_response(
     websocket,
     session_id,
-    user_message,
-    agent
+    user_message
 ):
 
     full_response = ""
+
     wikipedia_announced = False
 
     try:
@@ -678,6 +652,7 @@ async def generate_response(
                     )
 
                 except Exception:
+
                     pass
 
                 await send_json(
@@ -774,18 +749,80 @@ async def generate_response(
 
 
         # ====================================================
+        # SYNAPSE MODEL SELECTION
+        # ====================================================
+
+        try:
+
+            agent, model_name = create_synapse_agent(
+                user_message=user_message,
+                checkpointer=websocket.app.state.checkpointer,
+                tools=[
+                    wikipedia_search
+                ]
+            )
+
+        except Exception as e:
+
+            print(
+                f"  ❌ Synapse error: {e}"
+            )
+
+            await send_json(
+                websocket,
+                {
+                    "type": "error",
+                    "message": str(e)
+                }
+            )
+
+            return ""
+
+
+        # ====================================================
         # MODEL EVENT
         # ====================================================
+
+        if model_name == "gemini":
+
+            model_source = "gemini"
+
+            model_message = (
+                "Synapse selected Gemini."
+            )
+
+        elif model_name == "openrouter_free":
+
+            model_source = "openrouter"
+
+            model_message = (
+                "Synapse selected OpenRouter Free."
+            )
+
+        else:
+
+            model_source = "synapse"
+
+            model_message = (
+                f"Synapse selected {model_name}."
+            )
+
+
+        print(
+            f"  ⚡ Synapse: {model_name}"
+        )
+
 
         try:
 
             emit_event(
                 event_type="model",
-                source="gemini",
-                message="Generating response..."
+                source=model_source,
+                message=model_message
             )
 
         except Exception:
+
             pass
 
 
@@ -795,15 +832,15 @@ async def generate_response(
                 "type": "event",
                 "event": {
                     "type": "model",
-                    "source": "gemini",
-                    "message": "Generating response..."
+                    "source": model_source,
+                    "message": model_message
                 }
             }
         )
 
 
         # ====================================================
-        # STREAM GEMINI
+        # STREAM RESPONSE
         # ====================================================
 
         config = {
@@ -821,25 +858,79 @@ async def generate_response(
             stream_mode="messages"
         ):
 
-            # Report real tool usage to the frontend. Wikipedia is
-            # shown only when the agent actually invokes the tool.
-            token_name = getattr(token, "name", "") or ""
-            tool_calls = getattr(token, "tool_calls", None) or []
+            # ------------------------------------------------
+            # DETECT WIKIPEDIA TOOL USAGE
+            # ------------------------------------------------
+
+            token_name = (
+                getattr(
+                    token,
+                    "name",
+                    ""
+                )
+                or ""
+            )
+
+            tool_calls = (
+                getattr(
+                    token,
+                    "tool_calls",
+                    None
+                )
+                or []
+            )
+
             tool_names = []
 
-            if isinstance(tool_calls, list):
+            if isinstance(
+                tool_calls,
+                list
+            ):
+
                 for call in tool_calls:
-                    if isinstance(call, dict):
-                        name = call.get("name")
+
+                    if isinstance(
+                        call,
+                        dict
+                    ):
+
+                        name = call.get(
+                            "name"
+                        )
+
                         if name:
-                            tool_names.append(str(name))
 
-            metadata_text = str(metadata or {})
-            combined_tool_text = " ".join([token_name, *tool_names, metadata_text]).lower()
+                            tool_names.append(
+                                str(name)
+                            )
 
-            if "wikipedia_search" in combined_tool_text and not wikipedia_announced:
+
+            metadata_text = str(
+                metadata or {}
+            )
+
+            combined_tool_text = (
+                " ".join(
+                    [
+                        token_name,
+                        *tool_names,
+                        metadata_text
+                    ]
+                )
+                .lower()
+            )
+
+
+            if (
+                "wikipedia_search"
+                in combined_tool_text
+                and not wikipedia_announced
+            ):
+
                 wikipedia_announced = True
+
                 try:
+
                     await send_json(
                         websocket,
                         {
@@ -851,8 +942,15 @@ async def generate_response(
                             }
                         }
                     )
+
                 except Exception:
+
                     pass
+
+
+            # ------------------------------------------------
+            # EXTRACT TOKEN TEXT
+            # ------------------------------------------------
 
             text = extract_text(
                 getattr(
@@ -862,12 +960,16 @@ async def generate_response(
                 )
             )
 
+
             if not text:
 
                 continue
 
 
-            # Ignore tool-call JSON / non-text chunks
+            # ------------------------------------------------
+            # IGNORE TOOL-CALL JSON
+            # ------------------------------------------------
+
             if getattr(
                 token,
                 "tool_calls",
@@ -876,6 +978,10 @@ async def generate_response(
 
                 continue
 
+
+            # ------------------------------------------------
+            # ADD TOKEN
+            # ------------------------------------------------
 
             full_response += text
 
@@ -933,7 +1039,7 @@ async def generate_response(
 
 
             # ------------------------------------------------
-            # Obsidian backup
+            # OBSIDIAN BACKUP
             # ------------------------------------------------
 
             try:
@@ -967,18 +1073,21 @@ async def generate_response(
         return full_response
 
 
-    except asyncio.CancelledError:
+    # ========================================================
+    # REAL STOP
+    # ========================================================
 
-        # ====================================================
-        # REAL STOP
-        # ====================================================
+    except asyncio.CancelledError:
 
         print(
             f"  ⏹ Generation stopped: {session_id}"
         )
 
 
-        # Save whatever text was generated
+        # ----------------------------------------------------
+        # Save partial response
+        # ----------------------------------------------------
+
         if full_response.strip():
 
             conn = get_chat_db()
@@ -1007,6 +1116,7 @@ async def generate_response(
 
 
         try:
+
             await send_json(
                 websocket,
                 {
@@ -1014,11 +1124,18 @@ async def generate_response(
                     "content": full_response
                 }
             )
+
         except Exception:
+
             pass
+
 
         raise
 
+
+    # ========================================================
+    # GENERATION ERROR
+    # ========================================================
 
     except Exception as e:
 
@@ -1027,6 +1144,7 @@ async def generate_response(
         )
 
         try:
+
             await send_json(
                 websocket,
                 {
@@ -1034,7 +1152,9 @@ async def generate_response(
                     "message": str(e)
                 }
             )
+
         except Exception:
+
             pass
 
         return ""
@@ -1057,8 +1177,6 @@ async def websocket_endpoint(
     print(
         f"  🌐 WebSocket connected: {session_id}"
     )
-
-    agent = websocket.app.state.agent
 
     conn = get_chat_db()
 
@@ -1122,6 +1240,7 @@ async def websocket_endpoint(
                         pass
 
                     except Exception:
+
                         pass
 
                     generation_task = None
@@ -1158,7 +1277,10 @@ async def websocket_endpoint(
                     continue
 
 
+                # ------------------------------------------------
                 # Find previous user message
+                # ------------------------------------------------
+
                 row = conn.execute(
                     """
                     SELECT content
@@ -1190,7 +1312,10 @@ async def websocket_endpoint(
                 user_message = row["content"]
 
 
+                # ------------------------------------------------
                 # Remove previous assistant response
+                # ------------------------------------------------
+
                 conn.execute(
                     """
                     DELETE FROM messages
@@ -1219,18 +1344,43 @@ async def websocket_endpoint(
                 )
 
 
+                # ------------------------------------------------
+                # Start generation
+                # ------------------------------------------------
+
                 generation_task = asyncio.create_task(
                     generate_response(
                         websocket,
                         session_id,
-                        user_message,
-                        agent
+                        user_message
                     )
                 )
+
 
                 active_generations[
                     session_id
                 ] = generation_task
+
+
+                def regeneration_done(task):
+
+                    if (
+                        active_generations.get(
+                            session_id
+                        )
+                        is task
+                    ):
+
+                        active_generations.pop(
+                            session_id,
+                            None
+                        )
+
+
+                generation_task.add_done_callback(
+                    regeneration_done
+                )
+
 
                 continue
 
@@ -1250,7 +1400,10 @@ async def websocket_endpoint(
                 continue
 
 
-            # Prevent multiple generations
+            # ==================================================
+            # PREVENT MULTIPLE GENERATIONS
+            # ==================================================
+
             if (
                 generation_task
                 and not generation_task.done()
@@ -1265,7 +1418,9 @@ async def websocket_endpoint(
 
             session = conn.execute(
                 """
-                SELECT id, title
+                SELECT
+                    id,
+                    title
                 FROM sessions
                 WHERE id = ?
                 """,
@@ -1326,6 +1481,7 @@ async def websocket_endpoint(
                 )
             )
 
+
             conn.execute(
                 """
                 UPDATE sessions
@@ -1371,6 +1527,7 @@ async def websocket_endpoint(
                         else ""
                     )
                 )
+
 
                 conn.execute(
                     """
@@ -1419,10 +1576,10 @@ async def websocket_endpoint(
                 generate_response(
                     websocket,
                     session_id,
-                    user_message,
-                    agent
+                    user_message
                 )
             )
+
 
             active_generations[
                 session_id
@@ -1430,19 +1587,32 @@ async def websocket_endpoint(
 
 
             # ==================================================
-            # KEEP RECEIVING WHILE GEMINI GENERATES
-            # ==================================================
-            #
-            # Do not await generation_task here. The WebSocket
-            # must remain free to receive a STOP command.
+            # GENERATION CALLBACK
             # ==================================================
 
             def generation_done(task):
-                if active_generations.get(session_id) is task:
-                    active_generations.pop(session_id, None)
 
-            generation_task.add_done_callback(generation_done)
+                if (
+                    active_generations.get(
+                        session_id
+                    )
+                    is task
+                ):
 
+                    active_generations.pop(
+                        session_id,
+                        None
+                    )
+
+
+            generation_task.add_done_callback(
+                generation_done
+            )
+
+
+    # ========================================================
+    # WEBSOCKET DISCONNECTED
+    # ========================================================
 
     except WebSocketDisconnect:
 
@@ -1451,18 +1621,17 @@ async def websocket_endpoint(
         )
 
 
+    # ========================================================
+    # WEBSOCKET ERROR
+    # ========================================================
+
     except Exception as e:
 
         print(
             f"  ❌ WebSocket error: {e}"
         )
 
-
     finally:
-
-        # =====================================================
-        # CANCEL ACTIVE GENERATION
-        # =====================================================
 
         if (
             generation_task
@@ -1485,12 +1654,8 @@ async def websocket_endpoint(
             None
         )
 
+
         conn.close()
-
-
-# ============================================================
-# START SERVER
-# ============================================================
 
 if __name__ == "__main__":
 
