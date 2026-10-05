@@ -427,11 +427,21 @@ Current major capabilities:
 
 ## 👨‍💻 Author
 
-**Sumit**
+**Sumit Bhaya**
+**Debjeet Paramanik**
+**Munna Ruhidas**
+**Sk Firoz**
 
 GitHub: https://github.com/sumit1ntech
 
 Project: https://github.com/sumit1ntech/Felix-AI-Agent
+
+## Contributors
+
+- [Sumit Bhaya](https://github.com/sumit1ntech) — Project Creator
+- [Debjeet Paramanik](https://github.com/debjeet1ntech) — Contributor
+- [Munna Ruhidas](https://github.com/codew1thmunna) — Contributor
+- [Sk Firoz](https://github.com/) — Contributor
 
 ## 📄 License
 
